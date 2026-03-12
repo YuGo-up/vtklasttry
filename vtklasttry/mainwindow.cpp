@@ -1,68 +1,132 @@
-
 #include "mainwindow.h"
 
 #include <array>
+#include <memory>
 
-// VTK初始化宏
+#include <QFileDialog>
+#include <QMessageBox>
+
+// VTK initialization
 #include <vtkAutoInit.h>
 VTK_MODULE_INIT(vtkRenderingOpenGL2);
 VTK_MODULE_INIT(vtkInteractionStyle);
 
-// VTK头文件
-#include <vtkActor.h>
-#include <vtkCamera.h>
-#include <vtkCylinderSource.h>
-#include <vtkNamedColors.h>
-#include <vtkNew.h>
-#include <vtkPolyDataMapper.h>
-#include <vtkProperty.h>
-#include <vtkRenderer.h>
-#include <vtkGenericOpenGLRenderWindow.h>
+#include "MeshModel.h"
+#include "MeshQualityCalculator.h"
+#include "VTKPipeline.h"
 
-mainwindow::mainwindow(QWidget *parent)
+namespace
+{
+    // Default quality thresholds
+    constexpr double DEFAULT_ASPECT_THRESHOLD = 5.0;
+    constexpr double DEFAULT_SKEW_THRESHOLD   = 0.8;
+}
+
+mainwindow::mainwindow(QWidget* parent)
     : QMainWindow(parent)
+    , m_meshModel(std::make_unique<MeshModel>())
+    , m_qualityCalc(std::make_unique<MeshQualityCalculator>())
+    , m_vtkPipeline(std::make_unique<VTKPipeline>())
 {
     ui.setupUi(this);
-	// 设置背景颜色
-	vtkNew<vtkNamedColors> colors;
 
-	// 设置颜色
-	std::array<unsigned char, 4> bkg{ {26, 51, 102, 255} };
-	colors->SetColor("BkgColor", bkg[0], bkg[1], bkg[2], bkg[3]);
+    // Bind VTK render window to Qt widget
+    ui.openGLWidget->SetRenderWindow(m_vtkPipeline->renderWindow());
 
-	// 创建八边形圆柱体
-	vtkNew<vtkCylinderSource> cylinder;
-	cylinder->SetHeight(2.0);
-	cylinder->SetRadius(1.0);
-	cylinder->SetResolution(8);
-
-	// 创建Mapper
-	vtkNew<vtkPolyDataMapper> cylinderMapper;
-	cylinderMapper->SetInputConnection(cylinder->GetOutputPort());
-
-	// 创建Actor
-	vtkNew<vtkActor> cylinderActor;
-	cylinderActor->SetMapper(cylinderMapper);
-	cylinderActor->GetProperty()->SetColor(colors->GetColor4d("Tomato").GetData());
-	cylinderActor->RotateX(30.0);
-	cylinderActor->RotateY(-45.0);
-
-	// 创建Renderer
-	vtkNew<vtkRenderer> renderer;
-	renderer->AddActor(cylinderActor);
-	renderer->SetBackground(colors->GetColor3d("BkgColor").GetData());
-	renderer->ResetCamera();
-	renderer->GetActiveCamera()->Zoom(1.5);
-
-	// 创建RenderWindow
-	vtkNew<vtkGenericOpenGLRenderWindow> renderWindow;
-	renderWindow->AddRenderer(renderer);
-
-	// 将VTK渲染窗口设置到Qt的OpenGL控件中
-	ui.openGLWidget->SetRenderWindow(renderWindow);
+    ui.labelFileName->setText("-");
+    ui.labelBadCells->setText(tr("Low-quality cells: -"));
+    ui.comboBoxMetric->setCurrentIndex(0);
 }
 
 mainwindow::~mainwindow()
-{}
+{
+}
 
+void mainwindow::on_pushButton_2_clicked()
+{
+    const QString filePath = QFileDialog::getOpenFileName(
+        this,
+        tr("Open STL mesh file"),
+        QString(),
+        tr("STL files (*.stl);;All files (*.*)"));
+
+    if (filePath.isEmpty())
+    {
+        return;
+    }
+
+    QString errorMessage;
+    if (!m_meshModel->loadFromStl(filePath, errorMessage))
+    {
+        QMessageBox::warning(this, tr("Open failed"), errorMessage);
+        return;
+    }
+
+    ui.labelFileName->setText(filePath);
+
+    // Compute mesh quality
+    m_qualityData = QualityData{};
+    const bool ok = m_qualityCalc->computeQuality(
+        m_meshModel->polyData(),
+        m_qualityData,
+        DEFAULT_ASPECT_THRESHOLD,
+        DEFAULT_SKEW_THRESHOLD);
+
+    if (!ok)
+    {
+        QMessageBox::warning(this, tr("Compute failed"), tr("Failed to compute mesh quality."));
+        return;
+    }
+
+    // Update VTK mesh
+    m_vtkPipeline->setMesh(m_meshModel->polyData());
+
+    // Default: color by aspect ratio
+    if (m_qualityData.aspectMax > m_qualityData.aspectMin)
+    {
+        m_vtkPipeline->applyQualityScalar(
+            "AspectRatio",
+            m_qualityData.aspectMin,
+            m_qualityData.aspectMax);
+    }
+
+    ui.labelBadCells->setText(
+        tr("Low-quality cells: %1").arg(static_cast<int>(m_qualityData.badCells.size())));
+}
+
+void mainwindow::on_pushButton_clicked()
+{
+    if (!m_meshModel || !m_meshModel->hasMesh())
+    {
+        QMessageBox::information(this, tr("Info"), tr("Please open an STL mesh first."));
+        return;
+    }
+
+    const int metricIndex = ui.comboBoxMetric->currentIndex();
+    if (metricIndex == 0)
+    {
+        // Aspect ratio
+        if (m_qualityData.aspectMax > m_qualityData.aspectMin)
+        {
+            m_vtkPipeline->applyQualityScalar(
+                "AspectRatio",
+                m_qualityData.aspectMin,
+                m_qualityData.aspectMax);
+        }
+    }
+    else
+    {
+        // Skewness
+        if (m_qualityData.skewMax > m_qualityData.skewMin)
+        {
+            m_vtkPipeline->applyQualityScalar(
+                "Skewness",
+                m_qualityData.skewMin,
+                m_qualityData.skewMax);
+        }
+    }
+
+    ui.labelBadCells->setText(
+        tr("Low-quality cells: %1").arg(static_cast<int>(m_qualityData.badCells.size())));
+}
 
