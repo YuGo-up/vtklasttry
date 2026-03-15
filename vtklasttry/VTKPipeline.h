@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 #include <vtkSmartPointer.h>
@@ -11,7 +12,6 @@ class vtkPolyDataMapper;
 class vtkActor;
 class vtkLookupTable;
 
-// 封装 VTK 渲染管线，负责把网格与质量标量以颜色映射方式显示出来
 class VTKPipeline
 {
 public:
@@ -21,10 +21,14 @@ public:
 
     void setMesh(vtkSmartPointer<vtkPolyData> polyData);
 
-    // 根据给定的标量数组名称和范围应用颜色映射
     void applyQualityScalar(const std::string& arrayName,
                             double minVal,
                             double maxVal);
+
+    void updateBadCellsHighlight();
+
+    /** Returns cell id or -1 if none picked. */
+    int64_t pickCell(int displayX, int displayY);
 
     void resetCamera();
 
@@ -36,6 +40,7 @@ private:
     vtkSmartPointer<vtkRenderer>                  m_renderer;
     vtkSmartPointer<vtkPolyDataMapper>            m_mapper;
     vtkSmartPointer<vtkActor>                     m_actor;
+    vtkSmartPointer<vtkActor>                     m_badCellActor;
     vtkSmartPointer<vtkLookupTable>               m_lut;
 
     vtkSmartPointer<vtkPolyData>                  m_polyData;

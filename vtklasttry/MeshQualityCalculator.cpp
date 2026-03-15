@@ -150,7 +150,17 @@ bool MeshQualityCalculator::computeQuality(vtkSmartPointer<vtkPolyData> polyData
     {
         cellData->AddArray(aspectArray);
         cellData->AddArray(skewArray);
-        cellData->SetScalars(aspectArray); // 默认用长宽比作为当前标量
+        cellData->SetScalars(aspectArray); // default active scalar: aspect ratio
+
+        vtkSmartPointer<vtkDoubleArray> badArray = vtkSmartPointer<vtkDoubleArray>::New();
+        badArray->SetName("BadCell");
+        badArray->SetNumberOfComponents(1);
+        badArray->SetNumberOfTuples(numCells);
+        for (vtkIdType i = 0; i < numCells; ++i)
+            badArray->SetTuple1(i, 0.0);
+        for (vtkIdType id : out.badCells)
+            badArray->SetTuple1(id, 1.0);
+        cellData->AddArray(badArray);
     }
 
     return true;

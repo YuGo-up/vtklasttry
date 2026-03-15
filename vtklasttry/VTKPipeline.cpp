@@ -4,7 +4,10 @@
 
 #include <vtkActor.h>
 #include <vtkCamera.h>
+#include <vtkCellData.h>
+#include <vtkCellPicker.h>
 #include <vtkGenericOpenGLRenderWindow.h>
+#include <vtkGeometryFilter.h>
 #include <vtkLookupTable.h>
 #include <vtkNamedColors.h>
 #include <vtkNew.h>
@@ -12,6 +15,8 @@
 #include <vtkPolyDataMapper.h>
 #include <vtkProperty.h>
 #include <vtkRenderer.h>
+#include <vtkThreshold.h>
+#include <vtkUnstructuredGrid.h>
 
 VTKPipeline::VTKPipeline()
 {
@@ -37,6 +42,7 @@ void VTKPipeline::setMesh(vtkSmartPointer<vtkPolyData> polyData)
         m_mapper->SetInputData(m_polyData);
         m_renderer->ResetCamera();
         m_renderer->GetActiveCamera()->Zoom(1.5);
+        updateBadCellsHighlight();
         m_renderWindow->Render();
     }
 }
@@ -78,6 +84,91 @@ void VTKPipeline::applyQualityScalar(const std::string& arrayName,
 
     m_renderer->ResetCameraClippingRange();
     m_renderWindow->Render();
+}
+
+void VTKPipeline::updateBadCellsHighlight()
+{
+    if (!m_polyData)
+    {
+        if (m_badCellActor)
+        {
+            m_badCellActor->VisibilityOff();
+            m_renderWindow->Render();
+        }
+        return;
+    }
+
+    vtkCellData* cellData = m_polyData->GetCellData();
+    vtkDataArray* badArr = cellData ? cellData->GetArray("BadCell") : nullptr;
+    if (!badArr)
+    {
+        if (m_badCellActor)
+        {
+            m_badCellActor->VisibilityOff();
+            m_renderWindow->Render();
+        }
+        return;
+    }
+
+    vtkNew<vtkThreshold> threshold;
+    threshold->SetInputData(m_polyData);
+    threshold->SetInputArrayToProcess(0, 0, 0,
+        vtkDataObject::FIELD_ASSOCIATION_CELLS, "BadCell");
+    threshold->ThresholdBetween(0.5, 1.5);
+    threshold->Update();
+
+    vtkUnstructuredGrid* out = threshold->GetOutput();
+    if (!out || out->GetNumberOfCells() == 0)
+    {
+        if (m_badCellActor)
+        {
+            m_badCellActor->VisibilityOff();
+            m_renderWindow->Render();
+        }
+        return;
+    }
+
+    vtkNew<vtkGeometryFilter> geom;
+    geom->SetInputConnection(threshold->GetOutputPort());
+    geom->Update();
+
+    if (!m_badCellActor)
+    {
+        vtkNew<vtkPolyDataMapper> badMapper;
+        m_badCellActor = vtkSmartPointer<vtkActor>::New();
+        m_badCellActor->SetMapper(badMapper);
+        m_badCellActor->GetProperty()->SetColor(1.0, 0.0, 0.0);
+        m_badCellActor->GetProperty()->EdgeVisibilityOn();
+        m_badCellActor->GetProperty()->SetEdgeColor(0.0, 0.0, 0.0);
+        m_renderer->AddActor(m_badCellActor);
+    }
+
+    vtkPolyDataMapper* badMapper = vtkPolyDataMapper::SafeDownCast(m_badCellActor->GetMapper());
+    if (badMapper)
+    {
+        badMapper->SetInputData(geom->GetOutput());
+        m_badCellActor->VisibilityOn();
+    }
+    m_renderWindow->Render();
+}
+
+int64_t VTKPipeline::pickCell(int displayX, int displayY)
+{
+    if (!m_renderer || !m_renderWindow)
+        return -1;
+
+    vtkNew<vtkCellPicker> picker;
+    picker->SetTolerance(0.001);
+    picker->AddPickList(m_actor);
+    picker->PickFromListOn();
+    int ok = picker->Pick(displayX, displayY, 0, m_renderer);
+    if (ok)
+    {
+        vtkIdType cellId = picker->GetCellId();
+        if (cellId >= 0)
+            return static_cast<int64_t>(cellId);
+    }
+    return -1;
 }
 
 void VTKPipeline::resetCamera()

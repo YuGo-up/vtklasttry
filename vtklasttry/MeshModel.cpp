@@ -13,7 +13,7 @@ bool MeshModel::loadFromStl(const QString& filePath, QString& errorMessage)
     QFileInfo info(filePath);
     if (!info.exists() || !info.isFile())
     {
-        errorMessage = QObject::tr("File does not exist: %1").arg(filePath);
+        errorMessage = QObject::tr("文件不存在: %1").arg(filePath);
         m_polyData = nullptr;
         return false;
     }
@@ -26,7 +26,7 @@ bool MeshModel::loadFromStl(const QString& filePath, QString& errorMessage)
     vtkPolyData* output = reader->GetOutput();
     if (!output || output->GetNumberOfPoints() == 0)
     {
-        errorMessage = QObject::tr("STL mesh is empty or failed to read.");
+        errorMessage = QObject::tr("STL 网格为空或读取失败。");
         m_polyData = nullptr;
         return false;
     }
