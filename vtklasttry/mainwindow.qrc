@@ -1,4 +1,5 @@
 <RCC>
     <qresource prefix="mainwindow">
+        <file>report_template_zh.md</file>
     </qresource>
 </RCC>

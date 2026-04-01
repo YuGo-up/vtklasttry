@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -71,6 +71,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -83,6 +84,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DebugInformationFormat>None</DebugInformationFormat>
       <Optimization>MaxSpeed</Optimization>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -93,7 +95,59 @@
     <QtRcc Include="mainwindow.qrc" />
     <QtUic Include="mainwindow.ui" />
     <QtMoc Include="mainwindow.h" />
+    <ClInclude Include="MeshIO.h" />
+    <ClInclude Include="UiLog.h" />
+    <ClInclude Include="ExportEngine.h" />
+    <ClInclude Include="QualityEngine.h" />
+    <ClInclude Include="RuleEngine.h" />
+    <ClInclude Include="SceneController.h" />
+    <ClInclude Include="MetricNameResolver.h" />
+    <ClInclude Include="OverlayRequest.h" />
+    <ClInclude Include="SceneViewRequest.h" />
+    <ClInclude Include="ComputeRequest.h" />
+    <ClInclude Include="AppState.h" />
+    <ClInclude Include="QualityRequest.h" />
+    <ClInclude Include="QualityState.h" />
+    <ClInclude Include="MeshSelectRequest.h" />
+    <ClInclude Include="MeshState.h" />
+    <ClInclude Include="BadCellsPanel.h" />
+    <ClInclude Include="RuleTablePanel.h" />
+    <ClInclude Include="QualitySupport.h" />
+    <ClInclude Include="MeshWorkflow.h" />
+    <ClInclude Include="ComputeWorkflow.h" />
+    <ClInclude Include="UiStateController.h" />
+    <ClInclude Include="QualityWorkflow.h" />
+    <ClInclude Include="QualityDefaults.h" />
+    <ClInclude Include="MeshAnalysis.h" />
+    <ClInclude Include="VtkLogCapture.h" />
+    <ClInclude Include="ThresholdTemplates.h" />
+    <ClInclude Include="MenuController.h" />
+    <ClInclude Include="TemplateController.h" />
+    <ClInclude Include="SelectionController.h" />
+    <ClInclude Include="PickController.h" />
     <ClCompile Include="mainwindow.cpp" />
+    <ClCompile Include="MeshIO.cpp" />
+    <ClCompile Include="UiLog.cpp" />
+    <ClCompile Include="ExportEngine.cpp" />
+    <ClCompile Include="QualityEngine.cpp" />
+    <ClCompile Include="RuleEngine.cpp" />
+    <ClCompile Include="SceneController.cpp" />
+    <ClCompile Include="MetricNameResolver.cpp" />
+    <ClCompile Include="BadCellsPanel.cpp" />
+    <ClCompile Include="RuleTablePanel.cpp" />
+    <ClCompile Include="QualitySupport.cpp" />
+    <ClCompile Include="MeshWorkflow.cpp" />
+    <ClCompile Include="ComputeWorkflow.cpp" />
+    <ClCompile Include="UiStateController.cpp" />
+    <ClCompile Include="QualityWorkflow.cpp" />
+    <ClCompile Include="QualityDefaults.cpp" />
+    <ClCompile Include="MeshAnalysis.cpp" />
+    <ClCompile Include="VtkLogCapture.cpp" />
+    <ClCompile Include="ThresholdTemplates.cpp" />
+    <ClCompile Include="MenuController.cpp" />
+    <ClCompile Include="TemplateController.cpp" />
+    <ClCompile Include="SelectionController.cpp" />
+    <ClCompile Include="PickController.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
